@@ -1,37 +1,37 @@
 mod types;
 mod database;
+mod scanner;
 
-use crate::types::FileRecord;
 use crate::database::Database;
-use std::path::PathBuf;
+use std::time::Instant;
 
 fn main() {
     let mut db = Database::new();
 
-    let record1 = FileRecord::new(
-        "secret.txt".to_string(),
-        PathBuf::from("C:\\Users\\Documents\\secret.txt"),
-        1024,
-        false,
-    );
+    let target_folder = ".";
 
-    let record2 = FileRecord::new(
-        "shop.txt".to_string(),
-        PathBuf::from("C:\\Users\\Documents\\shop.txt"),
-        256,
-        false,
-    );
+    println!("scanning directory '{}'...", target_folder);
 
-    db.insert(record1);
-    db.insert(record2);
+    let start_scan = Instant::now();
+    let found_files = scanner::scan_directory(target_folder);
 
-    println!("Database loaded with {} files.", db.records.len());
+    for file in found_files {
+        db.insert(file);
+    }
 
-    let search_term = "secret";
-    println!("Searching for: '{}'", search_term);
+    let scan_duration = start_scan.elapsed();
+    println!("Database loaded with {} files in {:?}.", db.records.len(), scan_duration);
+
+    let search_term = "main";
     
+    let start_search = Instant::now();
     let results = db.search(search_term);
+    let search_duration = start_search.elapsed();
     
-    println!("Found {} results:\n{:#?}", results.len(), results);
+    println!("\nSearch for '{}' took {:?}", search_term, search_duration);
+    
+    for result in results.iter().take(5) {
+        println!(" -> {}", result.path.display());
+    }
 
 }
