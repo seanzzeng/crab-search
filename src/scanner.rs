@@ -1,27 +1,38 @@
-use walkdir::WalkDir;
+use windows::core::{w, PCWSTR};
+use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, HANDLE};
+use windows::Win32::Storage::FileSystem::{
+    CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+};
 use crate::types::FileRecord;
 
-pub fn scan_directory(start_path: &str) -> Vec<FileRecord> {
-    let mut discovered_files = Vec::new();
+pub fn scan_directory(start_path: &str) -> Result<Vec<FileRecord>, String> {
+    let volume_path = w!("\\\\.\\C:");
 
-    // only search permissable files
-    for entry in WalkDir::new(start_path).into_iter().filter_map(Result::ok) {
-        let metadata = match entry.metadata() {
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
+    let handle: Result<HANDLE, _> = unsafe {
+        CreateFileW(
+            volume_path,
+            GENERIC_READ.0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            None,
+        )
+    };
 
-        let record = FileRecord::new(
-            entry.file_name().to_string_lossy().to_string(),
-            entry.path().to_path_buf(),
-            metadata.len(),
-            metadata.is_dir(),
-        );
+    match handle {
+        Ok(h) => {
+            println!("Successfully connected to drive");
 
-        discovered_files.push(record);
+            unsafe {
+                let _ = CloseHandle(h);
+            }
 
+            Ok(Vec::new())
+        }
+        Err(e) => {
+            Err(format!("Access Denied. Are you running as Adminstrator? (Error Code: {})", e))
+        }
     }
-
-    discovered_files
 
 }

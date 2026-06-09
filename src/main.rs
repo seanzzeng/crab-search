@@ -14,14 +14,20 @@ fn main() {
     println!("scanning directory '{}'...", target_folder);
 
     let start_scan = Instant::now();
-    let found_files = scanner::scan_directory(target_folder);
-    
-    for file in found_files {
-        db.insert(file);
-    }
 
-    let scan_duration = start_scan.elapsed();
-    println!("Database loaded with {} files in {:?}.", db.records.len(), scan_duration);
+    match scanner::scan_directory(target_folder) {
+        Ok(found_files) => {
+            for file in found_files {
+                db.insert(file);
+            }
+            let scan_duration = start_scan.elapsed();
+            println!("Database loaded with {} files in {:?}.", db.records.len(), scan_duration);
+        }
+        Err(e_msg) => {
+            eprintln!("Are you opening in Admin?, {}", e_msg);
+            return;
+        }
+    }
 
     println!("Search engine initiated. Type 'quit' to quit");
 
