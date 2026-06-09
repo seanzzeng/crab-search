@@ -11,7 +11,7 @@ fn main() {
 
     let target_folder = ".";
 
-    println!("scanning directory '{}'...", target_folder);
+    println!("Scanning directory '{}'...", target_folder);
 
     let start_scan = Instant::now();
 
@@ -21,10 +21,10 @@ fn main() {
                 db.insert(file);
             }
             let scan_duration = start_scan.elapsed();
-            println!("Database loaded with {} files in {:?}.", db.records.len(), scan_duration);
+            println!("Database loaded with {} files in {:?}", db.records.len(), scan_duration);
         }
         Err(e_msg) => {
-            eprintln!("Are you opening in Admin?, {}", e_msg);
+            eprintln!("Error message: {}, are you opening as adminstrator?", e_msg);
             return;
         }
     }
