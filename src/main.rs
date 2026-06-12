@@ -54,11 +54,33 @@ fn main() {
         let search_duration = start_search.elapsed();
         
         println!("\nSearch for '{}' took {:?}", search_term, search_duration);
-        println!("{} results found", results.len());
         
-        for result in results.iter().take(10) {
-            println!(" -> {}", result.path.display());
+        let chunk_size = 15;
+        let mut current_idx = 0;
+
+        while current_idx < results.len() {
+            let end_idx = std::cmp::min(current_idx + chunk_size, results.len());
+
+            for i in current_idx..end_idx {
+                println!(" -> {}", results[i].path.display());
+            }
+
+            current_idx = end_idx;
+
+            if current_idx < results.len() {
+                print!("\x1B[33m\n--- Showing {} of {} results --- [Press ENTER for more, or 'q' to search again] > \x1B[0m", current_idx, results.len());
+                io::stdout().flush().unwrap();
+
+                let mut scroll_input = String::new();
+                io::stdin().read_line(&mut scroll_input).unwrap();
+
+                if scroll_input.trim().eq_ignore_ascii_case("q") {
+                    break;
+                }
+            }
         }
+
+
     }
     
 
