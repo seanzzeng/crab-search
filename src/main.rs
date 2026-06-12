@@ -55,7 +55,7 @@ fn main() {
         
         println!("\nSearch for '{}' took {:?}", search_term, search_duration);
         
-        for result in results.iter().take(8) {
+        for result in results.iter().take(10) {
             println!(" -> {}", result.path.display());
         }
     }

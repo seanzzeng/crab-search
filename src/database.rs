@@ -56,6 +56,7 @@ impl Database {
                 let mut completed_record = record.clone();
                 completed_record.path = self.build_path(record.parent_id, &record.name);
                 completed_record
+                // only build path when we search for it for memory efficiency
             })
             .collect()
     }

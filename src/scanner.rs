@@ -1,4 +1,4 @@
-use windows::core::{w, PCWSTR};
+use windows::core::{w};
 use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, HANDLE};
 use windows::Win32::Storage::FileSystem::{
     CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
@@ -19,7 +19,7 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
     let handle: Result<HANDLE, _> = unsafe {
         CreateFileW(
             volume_path,
-            GENERIC_READ.0, // DO NOT CHANGE THIS LINE OF CODE (!!!!) (might screw ur system up)
+            GENERIC_READ.0, // DO NOT CHANGE THIS LINE OF CODE (!!!!) (could screw system up)
             FILE_SHARE_READ | FILE_SHARE_WRITE,
             None,
             OPEN_EXISTING,
@@ -39,32 +39,41 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
                 HighUsn: i64::MAX,
             };
 
+            let mut discovered_files = Vec::new();
+
             let mut buffer = vec![0u8; 64 * 1024]; // 64KB buffer
-            let mut bytes_returned: u32 = 0;
 
-            // request data from win kernel
-            let success = unsafe {
-                DeviceIoControl(
-                    h,
-                    FSCTL_ENUM_USN_DATA,
-                    Some(&mut mft_enum_data as *mut _ as *const c_void),
-                    mem::size_of::<MFT_ENUM_DATA_V0>() as u32,
-                    Some(buffer.as_mut_ptr() as *mut c_void),
-                    buffer.len() as u32,
-                    Some(&mut bytes_returned),
-                    None,
-                )
-            };
+            // repeatedly request data
+            loop {
+                let mut bytes_returned: u32 = 0;
 
-            if success.is_ok() {
-                println!("Received {} raw bytes of data", bytes_returned);
+                // request data from win kernel
+                let success = unsafe {
+                    DeviceIoControl(
+                        h,
+                        FSCTL_ENUM_USN_DATA,
+                        Some(&mut mft_enum_data as *mut _ as *const c_void),
+                        mem::size_of::<MFT_ENUM_DATA_V0>() as u32,
+                        Some(buffer.as_mut_ptr() as *mut c_void),
+                        buffer.len() as u32,
+                        Some(&mut bytes_returned),
+                        None,
+                    )
+                };
 
-                let mut discovered_files = Vec::new();
+                if !success.is_ok() || bytes_returned <= 8 {
+                    break; // end of loop
+                }
+
+                let next_file_id = unsafe { *(buffer.as_ptr() as *const u64) };
+
+                mft_enum_data.StartFileReferenceNumber = next_file_id;
 
                 // first 8 bytes is the bookmark, skip to get actual records
                 let mut current_offset: usize = 8;
 
                 while current_offset < bytes_returned as usize {
+                    // cast raw bytes to usn record v2
                     let record_ptr = unsafe { buffer.as_ptr().add(current_offset) as *const USN_RECORD_V2 };
                     let record = unsafe { &*record_ptr };
 
@@ -92,23 +101,13 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
                     ));
 
                     current_offset += record_length;
-                }
-
-                println!("Parsed {} files from buffer", discovered_files.len());
-
-                unsafe {
-                    let _ = CloseHandle(h);
-                }
-
-                Ok(discovered_files)
-
-            } else {
-                unsafe {
-                    let _ = CloseHandle(h);
-                }
-
-                Err("Failed to read data".to_string())
+                }        
+            } 
+            unsafe {
+                let _ = CloseHandle(h);
             }
+
+            Ok(discovered_files)
         }
         Err(e) => {
             Err(format!("access denied, code {}", e))
