@@ -12,6 +12,9 @@ fn main() {
 
     let target_folder = ".";
 
+    // force colour codes to work
+    colored::control::set_virtual_terminal(true).unwrap_or(());
+
     println!("Scanning directory '{}'...", target_folder);
 
     let start_scan = Instant::now();
