@@ -1,4 +1,4 @@
-# trace ᝰ
+# trace &#x1770;
 a lightweight, fast cli-based file search engine for windows, in rust
 ## features
 - thousands of times faster than regular windows file search (minutes -> milliseconds)
