@@ -70,6 +70,9 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
 
                     let record_length = record.RecordLength as usize;
 
+                    let file_id = record.FileReferenceNumber;
+                    let parent_id = record.ParentFileReferenceNumber;
+
                     // filenames are 16 bytes
                     let name_ptr = unsafe {
                         (record_ptr as *const u8).add(record.FileNameOffset as usize) as *const u16
@@ -84,6 +87,8 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
                         std::path::PathBuf::new(),
                         0,
                         false, // place holders
+                        file_id,
+                        parent_id,
                     ));
 
                     current_offset += record_length;
