@@ -54,6 +54,7 @@ fn main() {
         let search_duration = start_search.elapsed();
         
         println!("\nSearch for '{}' took {:?}", search_term, search_duration);
+        println!("{} results found", results.len());
         
         for result in results.iter().take(10) {
             println!(" -> {}", result.path.display());
