@@ -14,7 +14,7 @@ impl Database {
     }
 
     pub fn insert(&mut self, record: FileRecord) {
-        self.records.push(record.id, record);
+        self.records.insert(record.id, record);
     }
 
     // reconstruct path string by climbing directory tree in reverse
@@ -27,7 +27,7 @@ impl Database {
         while let Some(parent_record) = self.records.get(&current_parent_id) {
             path_components.push(parent_record.name.clone());
 
-            if (parent_record.id == praent_record.parent_id) {
+            if parent_record.id == parent_record.parent_id {
                 break; // hit root
             }
 
@@ -46,12 +46,17 @@ impl Database {
         full_path
     }
 
-    pub fn search(&self, query: &str) -> Vec<&FileRecord> {
+    pub fn search(&self, query: &str) -> Vec<FileRecord> {
         let query_lower = query.to_lowercase();
 
         self.records
-            .iter()
+            .values()
             .filter(|record| record.name.to_lowercase().contains(&query_lower))
+            .map(|record| {
+                let mut completed_record = record.clone();
+                completed_record.path = self.build_path(record.parent_id, &record.name);
+                completed_record
+            })
             .collect()
     }
 }

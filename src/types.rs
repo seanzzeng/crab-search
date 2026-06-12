@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone)]
 pub struct FileRecord {
     pub name: String, // file name
-    pub path: PathBuf, // full path
+    pub path: PathBuf, // full path, only writes to path if searched for
     pub size_bytes: u64,
     pub is_dir: bool,
     pub id: u64, // file id
