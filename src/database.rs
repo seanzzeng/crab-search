@@ -47,11 +47,49 @@ impl Database {
     }
 
     pub fn search(&self, query: &str) -> Vec<FileRecord> {
-        let query_lower = query.to_lowercase();
+        let mut search_term = String::new();
+        let mut ext_filter: Option<String> = None;
+        let mut folder_only = false;
+
+        for part in query.split_whitespace() {
+            let part_lower = part.to_lowercase();
+            
+            if part_lower.starts_with("ext:") {
+                ext_filter = Some(part_lower.replace("ext:", ""));
+            } else if part_lower == "type:folder" || part_lower == "type:dir"  {
+                folder_only = true;
+            } else {
+                if !search_term.is_empty() {
+                    search_term.push(' ');
+                }
+                search_term.push_str(&part_lower);
+            }
+        }
 
         self.records
             .values()
-            .filter(|record| record.name.to_lowercase().contains(&query_lower))
+            .filter(|record| {
+                let name_lower = record.name.to_lowercase();
+
+                // reject anything thats not a folder
+                if folder_only && !record.is_dir {
+                    return false;
+                }
+
+                // reject anything with the wrong extension
+                if let Some(ref ext) = ext_filter {
+                    let target_ext = format!(".{}", ext);
+                    if !name_lower.ends_with(&target_ext) {
+                        return false;
+                    }
+                }
+
+                if !search_term.is_empty() && !name_lower.contains(&search_term) {
+                    return false;
+                }
+
+                true
+            })
             .map(|record| {
                 let mut completed_record = record.clone();
                 completed_record.path = self.build_path(record.parent_id, &record.name);

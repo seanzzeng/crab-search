@@ -2,6 +2,7 @@ use windows::core::{w};
 use windows::Win32::Foundation::{CloseHandle, GENERIC_READ, HANDLE};
 use windows::Win32::Storage::FileSystem::{
     CreateFileW, FILE_FLAG_BACKUP_SEMANTICS, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+    FILE_ATTRIBUTE_DIRECTORY,
 };
 use windows::Win32::System::Ioctl::{FSCTL_ENUM_USN_DATA, MFT_ENUM_DATA_V0, USN_RECORD_V2};
 use windows::Win32::System::IO::DeviceIoControl;
@@ -91,11 +92,13 @@ pub fn scan_directory(_start_path: &str) -> Result<Vec<FileRecord>, String> {
                     let name_slice = unsafe { std::slice::from_raw_parts(name_ptr, name_len) };
                     let file_name = String::from_utf16_lossy(name_slice);
 
+                    let is_dir = (record.FileAttributes & FILE_ATTRIBUTE_DIRECTORY.0) != 0;
+
                     discovered_files.push(FileRecord::new(
                         file_name,
                         std::path::PathBuf::new(),
                         0,
-                        false, // place holders
+                        is_dir,
                         file_id,
                         parent_id,
                     ));
