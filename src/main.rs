@@ -5,6 +5,7 @@ mod scanner;
 use crate::database::Database;
 use std::io::{self, Write};
 use std::time::Instant;
+use std::process::Command;
 
 fn main() {
     let mut db = Database::new();
@@ -62,20 +63,39 @@ fn main() {
             let end_idx = std::cmp::min(current_idx + chunk_size, results.len());
 
             for i in current_idx..end_idx {
-                println!(" -> {}", results[i].path.display());
+                println!("[{}] {}", i, results[i].path.display());
             }
 
             current_idx = end_idx;
 
-            if current_idx < results.len() {
-                print!("\x1B[33m\n--- Showing {} of {} results --- [Press ENTER for more, or 'q' to search again] > \x1B[0m", current_idx, results.len());
+            loop {
+                if current_idx >= results.len() {
+                    print!("\x1B[33m\n--- End of results --- [q: New Search | NUMBER: Open File] > \x1B[0m");
+                } else {
+                    print!("\x1B[33m\n--- Showing {} of {} --- [ENTER: Next Page | q: New Search | NUMBER: Open File] > \x1B[0m", current_idx, results.len());
+                }
                 io::stdout().flush().unwrap();
 
-                let mut scroll_input = String::new();
-                io::stdin().read_line(&mut scroll_input).unwrap();
-
-                if scroll_input.trim().eq_ignore_ascii_case("q") {
+                let mut action_input = String::new();
+                io::stdin().read_line(&mut action_input).unwrap();
+                let trimmed = action_input.trim();
+                
+                if trimmed.is_empty() {
                     break;
+                } else if trimmed.eq_ignore_ascii_case("q") {
+                    current_idx = results.len(); 
+                    break;
+                } else if let Ok(num) = trimmed.parse::<usize>() {
+                    if num < results.len() {
+                        let _ = Command::new("explorer")
+                            .arg("/select,")
+                            .arg(&results[num].path)
+                            .spawn();
+                    } else {
+                        println!("Invalid number");
+                    }
+                } else {
+                    println!("Unrecognized command");
                 }
             }
         }
